@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 	"todo-app/internal/db"
@@ -8,21 +9,22 @@ import (
 )
 
 func main() {
-	d, err := time.Parse("02-01-2006", "07-12-2025")
+	text := flag.String("text", "default", "")
+	today := time.Now().Format("02-01-2006")
+	due := flag.String("due", today, "Due date (dd-mm-yyyy)")
+	flag.Parse()
+	dueParsed, err := time.Parse("02-01-2006", *due)
 	if err != nil {
+		fmt.Println("Invalid date format, valid is: dd-mm-yyyy")
 		return
 	}
 
-	todo := types.Todo{
-		ID:       0,
-		Text:     "Finish this damn staff",
-		Done:     false,
-		CreateAt: time.Now(),
-		Due:      d,
-	}
-
 	todoList := db.TodoList{}
-	todoList.Todos = append(todoList.Todos, todo)
+	db.AddTodo(&todoList, types.PartialTodo{
+		Text: *text,
+		Due:  dueParsed,
+		Done: false,
+	})
 
-	fmt.Println(todoList.Todos)
+	fmt.Println(todoList.Todos[0].Due)
 }
