@@ -3,11 +3,11 @@ package types
 import "time"
 
 type Todo struct {
-	ID       int
-	Text     string
-	Done     bool
-	CreateAt time.Time
-	Due      time.Time
+	ID       int       `json:"id"`
+	Text     string    `json:"text"`
+	Done     bool      `json:"done"`
+	CreateAt time.Time `json:"createAt"`
+	Due      time.Time `json:"due"`
 }
 type PartialTodo struct {
 	Text string

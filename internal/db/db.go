@@ -1,6 +1,9 @@
 package db
 
 import (
+	"encoding/json"
+	"log"
+	"os"
 	"time"
 	"todo-app/internal/types"
 )
@@ -8,7 +11,28 @@ import (
 type Todo = types.Todo
 
 type TodoList struct {
-	Todos []Todo
+	Todos []Todo `json:"todos"`
+}
+
+func NewTodoList() *TodoList {
+	todoList := TodoList{}
+	todoList.Todos = []Todo{}
+	return &todoList
+}
+
+func InitTodoList(t *TodoList) {
+	data, err := os.ReadFile("todos.json")
+	if err != nil {
+		t.Todos = []Todo{}
+		return
+	}
+
+	err = json.Unmarshal(data, t)
+	if err != nil {
+		log.Printf("Failed to parse todos.json: %v", err)
+		t.Todos = []Todo{}
+		return
+	}
 }
 
 func GetUniqueId(t *TodoList) int {
@@ -49,4 +73,16 @@ func UpdateTodo(t *TodoList, id int, todo *types.TodoOptional) *Todo {
 		}
 	}
 	return nil
+}
+
+func SaveTodos(t *TodoList) {
+	data, err := json.MarshalIndent(t, "", "  ") // Serialize TodoList to JSON
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.WriteFile("todos.json", data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

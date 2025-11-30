@@ -19,12 +19,14 @@ func main() {
 		return
 	}
 
-	todoList := db.TodoList{}
-	db.AddTodo(&todoList, types.PartialTodo{
+	todoList := db.NewTodoList()
+	db.InitTodoList(todoList)
+
+	db.AddTodo(todoList, types.PartialTodo{
 		Text: *text,
 		Due:  dueParsed,
 		Done: false,
 	})
-
+	db.SaveTodos(todoList)
 	fmt.Println(todoList.Todos[0].Due)
 }
