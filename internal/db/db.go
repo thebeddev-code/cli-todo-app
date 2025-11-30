@@ -13,6 +13,9 @@ type TodoList struct {
 
 func GetUniqueId(t *TodoList) int {
 	todos := GetTodos(t)
+	if len(todos) == 0 {
+		return 1
+	}
 	return todos[len(todos)-1].ID + 1
 }
 
