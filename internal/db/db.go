@@ -58,8 +58,8 @@ func GetTodos(t *TodoList) []Todo {
 }
 
 func GetTodo(t *TodoList, id int) *Todo {
-	for i := range t.Todos {
-		if t.Todos[i].ID == id {
+	for i, todo := range t.Todos {
+		if todo.ID == id {
 			return &t.Todos[i]
 		}
 	}
@@ -67,12 +67,22 @@ func GetTodo(t *TodoList, id int) *Todo {
 }
 
 func UpdateTodo(t *TodoList, id int, todo *types.TodoOptional) *Todo {
-	for i := range t.Todos {
-		if t.Todos[i].ID == id {
+	for i, todo := range t.Todos {
+		if todo.ID == id {
 			return &t.Todos[i]
 		}
 	}
 	return nil
+}
+
+func DeleteTodo(t *TodoList, id int) bool {
+	for i, todo := range t.Todos {
+		if todo.ID == id {
+			t.Todos = append(t.Todos[:i], t.Todos[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 func SaveTodos(t *TodoList) {
