@@ -1,14 +1,17 @@
 package main
 
 import (
+	"log"
 	"os"
 	"todo-app/internal/db"
 	"todo-app/internal/utils"
 )
 
 func main() {
-	todoList := db.NewTodoList()
-	db.InitTodoList(todoList)
+	todoList, err := db.InitTodoList()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if len(os.Args) < 2 {
 		utils.PrintUsage()
 		return

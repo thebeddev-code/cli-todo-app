@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 	"todo-app/internal/types"
 )
@@ -14,25 +15,35 @@ type TodoList struct {
 	Todos []Todo `json:"todos"`
 }
 
-func NewTodoList() *TodoList {
-	todoList := TodoList{}
-	todoList.Todos = []Todo{}
-	return &todoList
+func GetDataPath() string {
+	// XDG_DATA_HOME (~/.local/share) or fallback to ~/.config
+	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+		return filepath.Join(dir, "todo", "todos.json")
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "share", "todo", "todos.json")
 }
 
-func InitTodoList(t *TodoList) {
-	data, err := os.ReadFile("todos.json")
-	if err != nil {
-		t.Todos = []Todo{}
-		return
+func InitTodoList() (*TodoList, error) {
+	path := GetDataPath()
+
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return nil, err
 	}
 
-	err = json.Unmarshal(data, t)
-	if err != nil {
-		log.Printf("Failed to parse todos.json: %v", err)
-		t.Todos = []Todo{}
-		return
+	// Load existing or create empty
+	todos := &TodoList{}
+	data, err := os.ReadFile(path)
+	if err == nil {
+		if err := json.Unmarshal(data, &todos.Todos); err != nil {
+			return nil, err
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
+
+	return todos, nil
 }
 
 func GetUniqueId(t *TodoList) int {
@@ -86,12 +97,12 @@ func DeleteTodo(t *TodoList, id int) bool {
 }
 
 func SaveTodos(t *TodoList) {
-	data, err := json.MarshalIndent(t, "", "  ") // Serialize TodoList to JSON
+	data, err := json.MarshalIndent(t.Todos, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = os.WriteFile("todos.json", data, 0644)
+	err = os.WriteFile(GetDataPath(), data, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

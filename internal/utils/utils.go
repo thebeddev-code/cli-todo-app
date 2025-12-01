@@ -18,8 +18,6 @@ Commands:
   update <field> <value> [field value ...] <id>
                              Update task (fields: text, due, done)
   delete <id>                Delete task by id
-  clear                      Clear screen
-  q, quit                    Quit
 
 Examples:
   todo add "Buy groceries" "15-12-2025"
@@ -155,7 +153,6 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 		fmt.Println("Todo deleted.")
 
 	default:
-		fmt.Println("Unknown command")
 		PrintUsage()
 	}
 
