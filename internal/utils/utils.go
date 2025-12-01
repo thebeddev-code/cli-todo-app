@@ -3,6 +3,9 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +13,19 @@ import (
 	"todo-app/internal/types"
 )
 
+func ClearScreen() {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default:
+		cmd = exec.Command("clear")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
+// Reducer hah
 func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, shouldExit *bool) {
 	const dateLayout = "02-01-2006"
 
@@ -134,11 +150,14 @@ func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, 
 			return
 		}
 		fmt.Println("Todo deleted.")
-
+	case "clear":
+		ClearScreen()
 	case "q", "quit":
 		*shouldExit = true
 
 	default:
 		fmt.Println("Unknown action")
 	}
+
+	db.SaveTodos(todoList)
 }
