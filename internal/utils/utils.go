@@ -1,11 +1,7 @@
 package utils
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -13,29 +9,29 @@ import (
 	"todo-app/internal/types"
 )
 
-func ClearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+func PrintUsage() {
+	const usage = `Usage: todo [command] [args]
+
+Commands:
+  add <text> [due-date]      Add new task (due-date: dd-mm-yyyy, default today)
+  list                       List all tasks
+  update <field> <value> [field value ...] <id>
+                             Update task (fields: text, due, done)
+  delete <id>                Delete task by id
+  clear                      Clear screen
+  q, quit                    Quit
+
+Examples:
+  todo add "Buy groceries" "15-12-2025"
+  todo update text "New text" done y 1
+  todo delete 5
+`
+	fmt.Print(usage)
 }
 
 // Reducer hah
-func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, shouldExit *bool) {
+func HandleAction(todoList *db.TodoList, action string, args []string) {
 	const dateLayout = "02-01-2006"
-
-	readLine := func(prompt string) string {
-		fmt.Print(prompt)
-		if !scanner.Scan() {
-			return ""
-		}
-		return scanner.Text()
-	}
 
 	parseDate := func(input string) (time.Time, error) {
 		if strings.TrimSpace(input) == "" {
@@ -46,8 +42,16 @@ func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, 
 
 	switch action {
 	case "add":
-		text := readLine("Enter text: ")
-		dueStr := readLine("Enter due date (dd-mm-yyyy, default today): ")
+		// Expect args to be: [text, dueDate(optional)]
+		if len(args) == 0 {
+			fmt.Println("Text for new task is required.")
+			return
+		}
+		text := args[0]
+		dueStr := ""
+		if len(args) > 1 {
+			dueStr = args[1]
+		}
 
 		dueParsed, err := parseDate(dueStr)
 		if err != nil {
@@ -86,36 +90,34 @@ func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, 
 		}
 
 	case "update":
-		fmt.Print("Enter fields to update [text, due, done] and task id (e.g. \"text due 3\"): ")
-		if !scanner.Scan() {
-			return
-		}
-		line := strings.TrimSpace(scanner.Text())
-		parts := strings.Fields(line)
-		if len(parts) < 2 {
-			fmt.Println("You must specify at least one field and an id.")
+		// Expect args: [field1, field2, ..., id, value1, value2, ...]
+		// For simplicity: args format ["field", "value", "id"], support multiple fields by pairs + id at the end
+		if len(args) < 3 || len(args)%2 == 0 {
+			fmt.Println("Usage: update <field> <value> [<field> <value> ...] <id>")
 			return
 		}
 
-		idStr := parts[len(parts)-1]
+		// The last argument is the id
+		idStr := args[len(args)-1]
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			fmt.Println("Invalid id")
 			return
 		}
-
 		todo := db.GetTodo(todoList, id)
 		if todo == nil {
 			fmt.Println("No todo with such id")
 			return
 		}
 
-		fields := parts[:len(parts)-1]
-		for _, field := range fields {
+		// Process fields and values pairs before the id argument
+		for i := 0; i < len(args)-1; i += 2 {
+			field := args[i]
+			value := args[i+1]
+
 			switch field {
 			case "due":
-				dueStr := readLine("Enter new due date (dd-mm-yyyy, default today): ")
-				dueParsed, err := parseDate(dueStr)
+				dueParsed, err := parseDate(value)
 				if err != nil {
 					fmt.Println("Invalid date format, valid is: dd-mm-yyyy")
 					return
@@ -123,40 +125,38 @@ func HandleAction(scanner *bufio.Scanner, todoList *db.TodoList, action string, 
 				todo.Due = dueParsed
 
 			case "text":
-				text := readLine("Enter new text: ")
-				todo.Text = text
+				todo.Text = value
 
 			case "done":
-				val := strings.TrimSpace(readLine("Enter y if done or n otherwise: "))
-				todo.Done = (val == "y" || val == "Y")
+				val := strings.ToLower(strings.TrimSpace(value))
+				todo.Done = (val == "y" || val == "yes" || val == "true" || val == "1")
+
 			default:
 				fmt.Printf("Unknown field: %s\n", field)
 			}
 		}
+		fmt.Printf("Successfully updated task!")
 
 	case "delete":
-		fmt.Print("Enter id to delete: ")
-		if !scanner.Scan() {
+		// Expect args: [id]
+		if len(args) != 1 {
+			fmt.Println("Usage: delete <id>")
 			return
 		}
-		idStr := strings.TrimSpace(scanner.Text())
-		id, err := strconv.Atoi(idStr)
+		id, err := strconv.Atoi(args[0])
 		if err != nil {
 			fmt.Println("Invalid id")
 			return
 		}
-		if db.DeleteTodo(todoList, id) == false {
-			fmt.Println("Failed to delete todo:", err)
+		if !db.DeleteTodo(todoList, id) {
+			fmt.Println("Failed to delete todo")
 			return
 		}
 		fmt.Println("Todo deleted.")
-	case "clear":
-		ClearScreen()
-	case "q", "quit":
-		*shouldExit = true
 
 	default:
-		fmt.Println("Unknown action")
+		fmt.Println("Unknown command")
+		PrintUsage()
 	}
 
 	db.SaveTodos(todoList)
