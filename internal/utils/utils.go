@@ -17,11 +17,12 @@ Commands:
   list                       List all tasks
   update <field> <value> [field value ...] <id>
                              Update task (fields: text, due, done)
-  done <id>                Complete task by id
+  done <id>                  Complete task by id
   delete <id>                Delete task by id
+  clear                      Clear todo list
 Examples:
   todo add "Buy groceries" "15-12-2025"
-  todo update text "New text" done y 1
+  todo update text "New text" done true 1
   todo delete 5
 `
 	fmt.Print(usage)
