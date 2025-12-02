@@ -27,6 +27,13 @@ Examples:
 	fmt.Print(usage)
 }
 
+func printHorizontalRule(len int) {
+	for i := 0; i < len; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println()
+}
+
 // Reducer hah
 func HandleAction(todoList *db.TodoList, action string, args []string) {
 	const dateLayout = "02-01-2006"
@@ -36,6 +43,18 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 			input = time.Now().Format(dateLayout)
 		}
 		return time.Parse(dateLayout, input)
+	}
+	parseFirstArgId := func() (int, error) {
+		if len(args) == 0 {
+			return 0, fmt.Errorf("Usage: %s <id>", action)
+		}
+
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			return 0, fmt.Errorf("invalid id '%s': %w", args[0], err)
+		}
+
+		return id, nil
 	}
 
 	switch action {
@@ -63,7 +82,6 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 			Due:  dueParsed,
 		})
 		fmt.Println("New task added!")
-
 	case "list":
 		todos := db.GetTodos(todoList)
 		if len(todos) == 0 {
@@ -71,21 +89,31 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 			return
 		}
 
-		for _, t := range todos {
+		fmt.Print("\n\n")
+		for i, t := range todos {
+
 			status := "❌"
 			if t.Done {
 				status = "✅"
 			}
+			if i == 0 {
+				printHorizontalRule(30)
+			}
 			fmt.Printf(
-				"🆔 ID: %d\n✏️  Text: %s\n%s Done: %v\n🛠️  Created: %s\n⏰ Due: %s\n\n",
+				"🆔 ID:      %d\n"+
+					"✏️ Text:    %s\n"+
+					"Status:    %s\n"+
+					"🛠️ Created: %s\n"+
+					"⏰ Due:     %s\n",
 				t.ID,
 				t.Text,
 				status,
-				t.Done,
 				t.CreateAt.Format("02-01-2006 15:04"),
 				t.Due.Format("02-01-2006 15:04"),
 			)
+			printHorizontalRule(30)
 		}
+		fmt.Print("\n\n")
 
 	case "update":
 		// Expect args: [field1, field2, ..., id, value1, value2, ...]
@@ -107,7 +135,6 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 			fmt.Println("No todo with such id")
 			return
 		}
-
 		// Process fields and values pairs before the id argument
 		for i := 0; i < len(args)-1; i += 2 {
 			field := args[i]
@@ -120,38 +147,46 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 					fmt.Println("Invalid date format, valid is: dd-mm-yyyy")
 					return
 				}
-				todo.Due = dueParsed
-
+				db.UpdateTodo(todoList, id, map[string]any{
+					"due": dueParsed,
+				})
 			case "text":
-				todo.Text = value
-
+				db.UpdateTodo(todoList, id, map[string]any{
+					"text": value,
+				})
 			case "done":
-				val := strings.ToLower(strings.TrimSpace(value))
-				todo.Done = (val == "y" || val == "yes" || val == "true" || val == "1")
-
+				db.UpdateTodo(todoList, id, map[string]any{
+					"done": (value == "y" || value == "yes" || value == "true" || value == "1"),
+				})
 			default:
 				fmt.Printf("Unknown field: %s\n", field)
 			}
 		}
 		fmt.Printf("Successfully updated task!")
-
+		if todo.Done {
+			fmt.Printf("Todo with id %d is done", todo.ID)
+		}
+	case "done":
+		id, err := parseFirstArgId()
+		if err != nil {
+			fmt.Printf(err.Error())
+			break
+		}
+		db.UpdateTodo(todoList, id, map[string]any{
+			"done": true,
+		})
 	case "delete":
 		// Expect args: [id]
-		if len(args) != 1 {
-			fmt.Println("Usage: delete <id>")
-			return
-		}
-		id, err := strconv.Atoi(args[0])
+		id, err := parseFirstArgId()
 		if err != nil {
-			fmt.Println("Invalid id")
-			return
+			fmt.Printf(err.Error())
+			break
 		}
 		if !db.DeleteTodo(todoList, id) {
-			fmt.Println("Failed to delete todo")
+			fmt.Println("Failed to delete todo. Probably the todo with such ID doesn't exist")
 			return
 		}
 		fmt.Println("Todo deleted.")
-
 	default:
 		PrintUsage()
 	}
