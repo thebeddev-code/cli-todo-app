@@ -34,20 +34,17 @@ func InitTodoList() (*TodoList, error) {
 	}
 
 	// Load existing or create empty
-	todoList := &TodoList{}
-	// Create the data file
-	SaveTodos(todoList)
-
+	todos := &TodoList{}
 	data, err := os.ReadFile(path)
 	if err == nil {
-		if err := json.Unmarshal(data, &todoList.Todos); err != nil {
+		if err := json.Unmarshal(data, &todos.Todos); err != nil {
 			return nil, err
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
 
-	return todoList, nil
+	return todos, nil
 }
 
 func GetUniqueId(t *TodoList) int {
