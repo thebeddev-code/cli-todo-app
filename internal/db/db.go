@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -77,12 +78,22 @@ func GetTodo(t *TodoList, id int) *Todo {
 	return nil
 }
 
-func UpdateTodo(t *TodoList, id int, todo *types.TodoOptional) *Todo {
-	for i, todo := range t.Todos {
-		if todo.ID == id {
-			return &t.Todos[i]
-		}
+func UpdateTodo(todoList *TodoList, id int, updates map[string]any) error {
+	todo := GetTodo(todoList, id)
+	if todo == nil {
+		return fmt.Errorf("todo %d not found", id)
 	}
+
+	if text, ok := updates["text"].(string); ok {
+		todo.Text = text
+	}
+	if done, ok := updates["done"].(bool); ok {
+		todo.Done = done
+	}
+	if due, ok := updates["due"].(time.Time); ok {
+		todo.Due = due
+	}
+
 	return nil
 }
 
