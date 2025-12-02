@@ -17,8 +17,8 @@ Commands:
   list                       List all tasks
   update <field> <value> [field value ...] <id>
                              Update task (fields: text, due, done)
+  done <id>                Complete task by id
   delete <id>                Delete task by id
-
 Examples:
   todo add "Buy groceries" "15-12-2025"
   todo update text "New text" done y 1
@@ -154,6 +154,7 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 				db.UpdateTodo(todoList, id, map[string]any{
 					"text": value,
 				})
+
 			case "done":
 				db.UpdateTodo(todoList, id, map[string]any{
 					"done": (value == "y" || value == "yes" || value == "true" || value == "1"),
@@ -175,6 +176,8 @@ func HandleAction(todoList *db.TodoList, action string, args []string) {
 		db.UpdateTodo(todoList, id, map[string]any{
 			"done": true,
 		})
+	case "clear":
+		db.DeleteAll(todoList)
 	case "delete":
 		// Expect args: [id]
 		id, err := parseFirstArgId()

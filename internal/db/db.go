@@ -107,6 +107,11 @@ func DeleteTodo(t *TodoList, id int) bool {
 	return false
 }
 
+func DeleteAll(t *TodoList) bool {
+	t.Todos = []Todo{}
+	return true
+}
+
 func SaveTodos(t *TodoList) {
 	data, err := json.MarshalIndent(t.Todos, "", "  ")
 	if err != nil {
